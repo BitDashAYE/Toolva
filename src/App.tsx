@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { lazy, Suspense } from 'react';
 import { Menu, Search, Filter, Zap, BookOpen, Users, Brain, Workflow, Book, Trophy, GraduationCap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
