@@ -1,31 +1,40 @@
-import { useState, useEffect } from 'react';
+import { lazy, Suspense } from 'react';
 import { Menu, Search, Filter, Zap, BookOpen, Users, Brain, Workflow, Book, Trophy, GraduationCap } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useInView } from 'react-intersection-observer';
 import { aiTools } from './data/aiTools';
 import { categories } from './data/categories';
 import Sidebar from './components/Sidebar';
-import ToolCard from './components/ToolCard';
 import ThemeToggle from './components/ThemeToggle';
 import AuthModal from './components/AuthModal';
 import UserMenu from './components/UserMenu';
-import ToolFinder from './components/ToolFinder';
-import CompareTools from './components/CompareTools';
-import SubmitTool from './components/SubmitTool';
-import PersonaRecommendations from './components/PersonaRecommendations';
-import PromptExplorer from './components/PromptExplorer';
-import WorkflowBuilder from './components/WorkflowBuilder';
-import AILearningHub from './components/AILearningHub';
-import AITermsDictionary from './components/AITermsDictionary';
-import WeeklyRecommendations from './components/WeeklyRecommendations';
-import Footer from './components/Footer';
-import toast, { Toaster } from 'react-hot-toast';
 import Pagination from './components/Pagination';
 import { supabase } from './lib/supabase';
-import { motion, AnimatePresence } from 'framer-motion';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import Profile from './pages/Profile';
-import Favorites from './pages/Favorites';
-import Settings from './pages/Settings';
-import ReactGA from 'react-ga4';
+import toast, { Toaster } from 'react-hot-toast';
+
+// Lazy loaded components
+const ToolFinder = lazy(() => import('./components/ToolFinder'));
+const CompareTools = lazy(() => import('./components/CompareTools'));
+const SubmitTool = lazy(() => import('./components/SubmitTool'));
+const PersonaRecommendations = lazy(() => import('./components/PersonaRecommendations'));
+const PromptExplorer = lazy(() => import('./components/PromptExplorer'));
+const WorkflowBuilder = lazy(() => import('./components/WorkflowBuilder'));
+const AILearningHub = lazy(() => import('./components/AILearningHub'));
+const AITermsDictionary = lazy(() => import('./components/AITermsDictionary'));
+const WeeklyRecommendations = lazy(() => import('./components/WeeklyRecommendations'));
+const Footer = lazy(() => import('./components/Footer'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Favorites = lazy(() => import('./pages/Favorites'));
+const Settings = lazy(() => import('./pages/Settings'));
+const ToolCard = lazy(() => import('./components/ToolCard'));
+
+// Loading fallback component
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center min-h-[200px]">
+    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+  </div>
+);
 
 function App() {
   const [isDark, setIsDark] = useState(() => {
@@ -45,20 +54,20 @@ function App() {
   const itemsPerPage = 12;
 
   useEffect(() => {
-  const script1 = document.createElement('script');
-  script1.src = "https://www.googletagmanager.com/gtag/js?id=G-N87HLGF2NN";
-  script1.async = true;
-  document.head.appendChild(script1);
+    const script1 = document.createElement('script');
+    script1.src = "https://www.googletagmanager.com/gtag/js?id=G-N87HLGF2NN";
+    script1.async = true;
+    document.head.appendChild(script1);
 
-  const script2 = document.createElement('script');
-  script2.innerHTML = `
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-N87HLGF2NN');
-  `;
-  document.head.appendChild(script2);
-}, []);
+    const script2 = document.createElement('script');
+    script2.innerHTML = `
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-N87HLGF2NN');
+    `;
+    document.head.appendChild(script2);
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -175,7 +184,7 @@ function App() {
               animate={{ x: 0 }}
               exit={{ x: -300 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 shadow-lg"
+              className="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 shadow-lg md:relative"
             >
               <Sidebar
                 categories={categories}
@@ -241,9 +250,21 @@ function App() {
           </header>
 
           <Routes>
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/favorites" element={<Favorites />} />
-            <Route path="/settings" element={<Settings />} />
+            <Route path="/profile" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <Profile />
+              </Suspense>
+            } />
+            <Route path="/favorites" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <Favorites />
+              </Suspense>
+            } />
+            <Route path="/settings" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <Settings />
+              </Suspense>
+            } />
             <Route path="/" element={
               <main className="flex-1 pt-16 pb-20">
                 {view === 'grid' && (
@@ -314,55 +335,67 @@ function App() {
                 )}
 
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                  {view === 'grid' && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.5 }}
-                    >
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {paginatedTools.map((tool, index) => (
-                          <motion.div
-                            key={tool.name}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1, duration: 0.5 }}
-                            className="h-full"
-                          >
-                            <ToolCard
-                              tool={tool}
-                              onFavorite={() => handleFavorite(tool.name)}
-                              isFavorited={favorites.includes(tool.name)}
-                            />
-                          </motion.div>
-                        ))}
-                      </div>
-                      {totalPages > 1 && (
-                        <div className="mt-8">
-                          <Pagination
-                            currentPage={currentPage}
-                            totalPages={totalPages}
-                            onPageChange={setCurrentPage}
-                          />
+                  <Suspense fallback={<LoadingFallback />}>
+                    {view === 'grid' && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.5 }}
+                      >
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                          {paginatedTools.map((tool, index) => {
+                            const [ref, inView] = useInView({
+                              triggerOnce: true,
+                              threshold: 0.1
+                            });
+
+                            return (
+                              <motion.div
+                                key={tool.name}
+                                ref={ref}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={inView ? { opacity: 1, y: 0 } : {}}
+                                transition={{ delay: index * 0.1, duration: 0.5 }}
+                                className="h-full"
+                              >
+                                <ToolCard
+                                  tool={tool}
+                                  onFavorite={() => handleFavorite(tool.name)}
+                                  isFavorited={favorites.includes(tool.name)}
+                                />
+                              </motion.div>
+                            );
+                          })}
                         </div>
-                      )}
-                    </motion.div>
-                  )}
-                  {view === 'finder' && <ToolFinder tools={aiTools} />}
-                  {view === 'compare' && <CompareTools tools={aiTools} />}
-                  {view === 'personas' && <PersonaRecommendations />}
-                  {view === 'prompts' && <PromptExplorer />}
-                  {view === 'workflows' && <WorkflowBuilder />}
-                  {view === 'learning' && <AILearningHub />}
-                  {view === 'dictionary' && <AITermsDictionary />}
-                  {view === 'weekly' && <WeeklyRecommendations />}
-                  {view === 'submit' && <SubmitTool onClose={() => setView('grid')} />}
+                        {totalPages > 1 && (
+                          <div className="mt-8">
+                            <Pagination
+                              currentPage={currentPage}
+                              totalPages={totalPages}
+                              onPageChange={setCurrentPage}
+                            />
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+                    {view === 'finder' && <ToolFinder tools={aiTools} />}
+                    {view === 'compare' && <CompareTools tools={aiTools} />}
+                    {view === 'personas' && <PersonaRecommendations />}
+                    {view === 'prompts' && <PromptExplorer />}
+                    {view === 'workflows' && <WorkflowBuilder />}
+                    {view === 'learning' && <AILearningHub />}
+                    {view === 'dictionary' && <AITermsDictionary />}
+                    {view === 'weekly' && <WeeklyRecommendations />}
+                    {view === 'submit' && <SubmitTool onClose={() => setView('grid')} />}
+                  </Suspense>
                 </div>
               </main>
             } />
           </Routes>
 
-          <Footer />
+          <Suspense fallback={<LoadingFallback />}>
+            <Footer />
+          </Suspense>
         </div>
 
         {showAuthModal && (
